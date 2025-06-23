@@ -6,8 +6,8 @@ import { sepolia } from "wagmi/chains"
 import { privateKeyToAccount } from "viem/accounts"
 
 export async function getSepoliaClients() {
-    const SEPOLIA_RPC_URL = process.env.SEPOLIA_RPC_URL
-    const PRIVATE_KEY = process.env.PRIVATE_KEY
+    const SEPOLIA_RPC_URL = process.env.NEXT_PUBLIC_SEPOLIA_RPC_URL
+    const PRIVATE_KEY = process.env.NEXT_PRIVATE_PRIVATE_KEY
 
     if (!SEPOLIA_RPC_URL || !PRIVATE_KEY) {
         throw new Error("Missing SEPOLIA_RPC_URL or PRIVATE_KEY in environment")
@@ -17,7 +17,9 @@ export async function getSepoliaClients() {
 
     const publicClient = createPublicClient({
         chain: sepolia,
-        transport: http(SEPOLIA_RPC_URL),
+        transport: http(SEPOLIA_RPC_URL, {
+            timeout: 60_000, // 30 seconds
+        }),
     })
 
     const walletClient = createWalletClient({

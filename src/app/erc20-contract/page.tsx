@@ -18,7 +18,7 @@ import { cn } from "@/lib/utils"
 import { ChevronDown, Loader2, CheckCircle, XCircle, Copy, ExternalLink } from "lucide-react"
 
 // Contract address - replace with your actual deployed ERC-20 contract address
-const ERC20_CONTRACT_ADDRESS = "0xYOUR_ERC20_CONTRACT_ADDRESS_HERE" as Address
+const ERC20_CONTRACT_ADDRESS = process.env.NEXT_PUBLIC_PTK as Address
 
 interface ContractEvent {
     type: string
@@ -1053,7 +1053,6 @@ const Erc20ContractPage = () => {
                         <h1 className="text-3xl font-bold text-gray-900">
                             ERC-20 Contract Interaction
                         </h1>
-                        <ConnectButton />
                     </div>
 
                     {!isConnected && (

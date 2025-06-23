@@ -8,16 +8,19 @@ import {
     getContractAddress,
     createWalletClient,
     custom,
+    encodeDeployData,
 } from "viem"
+
+// import { deployContract } from "viem/actions"
+
 import { sepolia } from "wagmi/chains"
 import { privateKeyToAccount } from "viem/accounts"
 import { ERC20_BYTECODE } from "@/lib/constants/erc20Bytecode"
 import { compileERC20Token } from "../compile-erc20"
 import { getSepoliaClients } from "../clients"
+import { validateDeployInput } from "@/utils"
 
 // Validate environment variables
-const SEPOLIA_RPC_URL = process.env.NEXT_PUBLIC_SEPOLIA_RPC_URL
-const PRIVATE_KEY = process.env.NEXT_PRIVATE_PRIVATE_KEY
 
 // TypeScript input type
 export type DeployInput = {
@@ -36,34 +39,56 @@ export async function deployERC20Token({
     tokenDecimals,
     initialSupply,
 }: DeployInput) {
-    console.log("deployERC20Token", SEPOLIA_RPC_URL, PRIVATE_KEY)
-    const { publicClient, walletClient, deployerAccount } = await getSepoliaClients()
+    const input = {
+        userAddress,
+        tokenName,
+        tokenSymbol,
+        tokenDecimals,
+        initialSupply,
+    }
     try {
+        // const abiItem = {
+        //     inputs: [{ name: "owner", type: "address" }],
+        //     name: "balanceOf",
+        //     outputs: [{ name: "", type: "uint256" }],
+        //     stateMutability: "view",
+        //     type: "function",
+        // }
+        const { userAddress, tokenName, tokenSymbol, tokenDecimals, initialSupply, totalSupply } =
+            validateDeployInput(input)
+
+        const { abi, bytecode, contractName, errors, error } = await compileERC20Token({
+            name: tokenName,
+            symbol: tokenSymbol,
+            decimals: tokenDecimals,
+            initialSupply: Number(totalSupply),
+        })
+
+        console.log("compileERC20Token2", { contractName, errors, error })
+
+        if (errors) {
+            return { error: "Compilation error" }
+        }
+
+        // const encodedConstructor = encodeFunctionData({
+        //     abi,
+        //     args: [tokenName, tokenSymbol, tokenDecimals, totalSupply, userAddress],
+        // })
+
+        // const deploymentData = (bytecode + encodedConstructor.slice(2)) as `0x${string}`
+
+        const { publicClient, walletClient, deployerAccount } = await getSepoliaClients()
+
         console.log(
             "deployERC20Token",
-            SEPOLIA_RPC_URL,
-            PRIVATE_KEY,
-            publicClient,
-            walletClient,
-            deployerAccount,
-            userAddress,
-            tokenName,
-            tokenSymbol,
-            tokenDecimals,
-            initialSupply
+
+            publicClient.chain,
+            walletClient.account,
+            deployerAccount.address
         )
 
-        if (
-            !SEPOLIA_RPC_URL ||
-            !PRIVATE_KEY ||
-            !publicClient ||
-            !walletClient ||
-            !deployerAccount
-        ) {
+        if (!publicClient || !walletClient || !deployerAccount) {
             return {
-                SEPOLIA_RPC_URL,
-                PRIVATE_KEY,
-                publicClient,
                 walletClient,
                 deployerAccount,
                 userAddress,
@@ -74,96 +99,41 @@ export async function deployERC20Token({
             }
             return { error: "Deployment service not configured. Check environment variables." }
         }
+       
 
-        if (!/^0x[a-fA-F0-9]{40}$/.test(userAddress)) {
-            return { error: "Invalid user address format" }
-        }
-
-        if (!tokenName || tokenName.trim().length === 0) {
-            return { error: "Token name cannot be empty" }
-        }
-
-        if (!tokenSymbol || tokenSymbol.length === 0 || tokenSymbol.length > 10) {
-            return { error: "Token symbol must be between 1 and 10 characters" }
-        }
-
-        if (tokenDecimals < 0 || tokenDecimals > 18) {
-            return { error: "Token decimals must be between 0 and 18" }
-        }
-
-        const supplyNumber = parseFloat(initialSupply)
-        if (isNaN(supplyNumber) || supplyNumber <= 0) {
-            return { error: "Initial supply must be a positive number" }
-        }
-
-        const totalSupply = BigInt(parseEther(initialSupply)) // include decimals
-        // const abiItem = {
-        //     inputs: [{ name: "owner", type: "address" }],
-        //     name: "balanceOf",
-        //     outputs: [{ name: "", type: "uint256" }],
-        //     stateMutability: "view",
-        //     type: "function",
-        // }
-
-        const { abi, bytecode, contractName, error } = await compileERC20Token({
-            name: tokenName,
-            symbol: tokenSymbol,
-            decimals: tokenDecimals,
-            initialSupply: Number(totalSupply),
-        })
-
-        console.log("compileERC20Token", { contractName, error })
-
-        if (error) {
-            return { error: "Compilation error" }
-        }
-
-        const encodedConstructor = encodeFunctionData({
+        const data = encodeDeployData({
             abi,
+            bytecode,
             args: [tokenName, tokenSymbol, tokenDecimals, totalSupply, userAddress],
         })
-
-        const deploymentData = (bytecode + encodedConstructor.slice(2)) as `0x${string}`
-
-        const nonce = await publicClient.getTransactionCount({
-            address: deployerAccount.address,
-        })
-
-        const gas = await publicClient.estimateGas({
-            account: deployerAccount.address,
-            data: deploymentData,
-        })
-
         const gasPrice = await publicClient.getGasPrice()
-
         const tx = {
-            account: deployerAccount.address,
-            data: deploymentData,
-            gas,
+            from: userAddress,
+            to: undefined,
+            data,
+            gas: BigInt(2000000),
             gasPrice,
-            nonce,
-            chain: sepolia,
+            value: BigInt(0),
+            nonce: await publicClient.getTransactionCount({ address: userAddress }),
         }
+        console.log("tx", tx, gasPrice)
+        const signedTx = await walletClient.signTransaction(tx)
+        const txHash = await publicClient.sendRawTransaction({ serializedTransaction: signedTx })
+        const deployedAddress = await publicClient.waitForTransactionReceipt({ hash: txHash })
 
-        const hash = await walletClient.sendTransaction(tx)
-
-        const receipt = await publicClient.waitForTransactionReceipt({ hash })
-
-        if (receipt.status === "reverted") {
-            return { error: "Contract deployment failed" }
-        }
-
-        const contractAddress = getContractAddress({
-            from: deployerAccount.address,
-            nonce: BigInt(nonce),
-        })
+        console.log(
+            "deployedAddress after deployContract",
+            deployedAddress.contractAddress,
+            "txHash",
+            txHash
+        )
 
         return {
             success: true,
-            transactionHash: hash,
-            contractAddress,
-            blockNumber: receipt.blockNumber,
-            gasUsed: receipt.gasUsed.toString(),
+            transactionHash: txHash,
+            contractAddress: deployedAddress.contractAddress,
+            blockNumber: BigInt(deployedAddress.blockNumber),
+            gasUsed: BigInt(deployedAddress.gasUsed),
             contractName,
         }
     } catch (error: any) {
@@ -184,3 +154,4 @@ export async function deployERC20Token({
         return { error: "Contract deployment failed. Please try again." }
     }
 }
+

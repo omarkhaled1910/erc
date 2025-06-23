@@ -21,6 +21,7 @@ import {
     DialogTrigger,
 } from "@/components/ui/dialog"
 import { DeploymentForm } from "@/components/DeploymentForm"
+import { FaGithub } from "react-icons/fa"
 
 const DeployerPage = () => {
     const { address, isConnected } = useAccount()
@@ -77,8 +78,12 @@ const DeployerPage = () => {
             setDeploymentHash(result.transactionHash || "")
             setDeployedAddress(result.contractAddress || "")
             setIsDeployed(true)
-
-            toast.success("Contract deployed successfully!")
+            console.log("result", result)
+            if (result?.success) {
+                toast.success("Contract deployed successfully!")
+            } else {
+                toast.error(result?.error || "Deployment failed")
+            }
 
             // Reset form after successful deployment
             return result
@@ -286,10 +291,19 @@ const DeployerPage = () => {
                                 <strong>Test Tokens:</strong> These are test tokens and have no
                                 real value
                             </p>
+                            <a
+                                href="https://github.com/cyfrin/TSender"
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                className="p-1 w-max rounded-lg bg-zinc-900 hover:bg-zinc-800 transition-colors border-2 border-zinc-600 hover:border-zinc-500 cursor-alias hidden md:block"
+                            >
+                                <FaGithub className="h-5 w-5 text-white" />
+                            </a>
                         </div>
                     </div>
                 </div>
             </div>
+
             {showGasInfoModal && (
                 <InfoModal
                     showGasInfoModal={showGasInfoModal}
@@ -297,14 +311,11 @@ const DeployerPage = () => {
                 />
             )}
 
-            {/* Contract Modal */}
             <ContractModal
                 isOpen={showModal}
                 onClose={() => setShowModal(false)}
                 localStorageKey="latest_deployment"
             />
-
-            {/* Gas Info Modal */}
         </div>
     )
 }

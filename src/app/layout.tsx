@@ -5,6 +5,7 @@ import Header from "@/components/Header"
 import { Providers } from "@/app/providers"
 import Sidebar from "@/components/Sidebar"
 import { Toaster } from "react-hot-toast"
+import ConnectedGuard from "@/providers/ConnectedGuard"
 
 export const metadata: Metadata = {
     title: "TSender",
@@ -22,7 +23,9 @@ export default function RootLayout(props: { children: ReactNode }) {
                     <Sidebar />
                     <div className="lg:ml-64">
                         <Header />
-                        <main className="p-6">{props.children}</main>
+                        <main className="p-6">
+                            <ConnectedGuard>{props.children}</ConnectedGuard>
+                        </main>
                     </div>
                     <Toaster
                         position="top-right"

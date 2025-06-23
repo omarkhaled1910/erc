@@ -177,7 +177,7 @@ export function DeploymentForm({
                 className="w-full"
                 variant="default"
             >
-                {isLoading ? "Deploying..." : "Deploy ERC-20 Contract"}
+                {isLoading ? "Deploying..." : "Compile & Deploy ERC-20 Contract"}
             </Button>
         </form>
     )

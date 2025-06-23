@@ -47,7 +47,7 @@ export const useDeployContract = () => {
                 transactionHash: data.transactionHash || "",
                 contractAddress: data.contractAddress as string,
                 blockNumber: Number(data.blockNumber) as number,
-                gasUsed: data.gasUsed || "",
+                gasUsed: data?.gasUsed?.toString() || "",
                 tokenName: variables.tokenName,
                 tokenSymbol: variables.tokenSymbol,
                 tokenDecimals: variables.tokenDecimals,
