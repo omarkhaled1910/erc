@@ -1,6 +1,6 @@
 "use client"
 
-import React, { useState, useEffect } from "react"
+import React, { useState, useEffect, useRef } from "react"
 import {
     useAccount,
     useReadContract,
@@ -15,8 +15,18 @@ import { parseUnits, formatUnits, isAddress, type Address } from "viem"
 import toast from "react-hot-toast"
 import * as Accordion from "@radix-ui/react-accordion"
 import { cn } from "@/lib/utils"
-import { ChevronDown, Loader2, CheckCircle, XCircle, Copy, ExternalLink } from "lucide-react"
-
+import { ChevronDown, Loader2, CheckCircle, XCircle, Copy, ExternalLink, Link } from "lucide-react"
+import { InputForm } from "@/components/ui/InputField"
+import {
+    // Accordion,
+    AccordionContent,
+    AccordionItem,
+    AccordionTrigger,
+} from "@/components/ui/Accordion"
+import { formatNumberCompact } from "@/utils"
+import RequestTokenModal from "@/components/ui/RequestTokenModal"
+import { Button } from "@/components/ui/button"
+import ApproveTokenModal from "@/components/ui/ApproveTokenModal"
 // Contract address - replace with your actual deployed ERC-20 contract address
 const ERC20_CONTRACT_ADDRESS = process.env.NEXT_PUBLIC_PTK as Address
 
@@ -34,11 +44,9 @@ const Erc20ContractPage = () => {
     const { address, isConnected } = useAccount()
     const [contractAddress, setContractAddress] = useState<Address>(ERC20_CONTRACT_ADDRESS)
     const [recipientAddress, setRecipientAddress] = useState("")
-    const [amount, setAmount] = useState("")
     const [spenderAddress, setSpenderAddress] = useState("")
     const [ownerAddress, setOwnerAddress] = useState("")
     const [minterAddress, setMinterAddress] = useState("")
-    const [minterAmount, setMinterAmount] = useState("")
     const [blacklistAddress, setBlacklistAddress] = useState("")
     const [newOwnerAddress, setNewOwnerAddress] = useState("")
     const [newBlacklisterAddress, setNewBlacklisterAddress] = useState("")
@@ -47,8 +55,17 @@ const Erc20ContractPage = () => {
     const [newMasterMinterAddress, setNewMasterMinterAddress] = useState("")
     const [rescueTokenAddress, setRescueTokenAddress] = useState("")
     const [rescueRecipientAddress, setRescueRecipientAddress] = useState("")
-    const [rescueAmount, setRescueAmount] = useState("")
     const [recentEvents, setRecentEvents] = useState<ContractEvent[]>([])
+    const [showRequestTokenModal, setShowRequestTokenModal] = useState(false)
+    const [showApproveTokenModal, setShowApproveTokenModal] = useState(false)
+    // Use useRef for amount fields to avoid re-renders
+    const transferAmountRef = useRef<HTMLInputElement>(null)
+    const approveAmountRef = useRef<HTMLInputElement>(null)
+    const transferFromAmountRef = useRef<HTMLInputElement>(null)
+    const mintAmountRef = useRef<HTMLInputElement>(null)
+    const burnAmountRef = useRef<HTMLInputElement>(null)
+    const minterAmountRef = useRef<HTMLInputElement>(null)
+    const rescueAmountRef = useRef<HTMLInputElement>(null)
 
     // Read contract functions
     const { data: tokenName } = useReadContract({
@@ -122,12 +139,15 @@ const Erc20ContractPage = () => {
         functionName: "version",
     })
 
-    const { data: currency } = useReadContract({
-        address: contractAddress,
+    const { data: allowance } = useReadContract({
         abi: erc20Abi,
-        functionName: "currency",
+        address: contractAddress as `0x${string}`,
+        functionName: "allowance",
+        args: [process.env.NEXT_PUBLIC_PTK_OWNER as Address, address as Address], // Assuming PTK_ADDRESS is the spender for the main allowance display
+        query: {
+            enabled: !!address,
+        },
     })
-
     // Write contract functions
     const { writeContract, data: hash, isPending, error } = useWriteContract()
 
@@ -136,43 +156,43 @@ const Erc20ContractPage = () => {
     })
 
     // Watch events
-    useWatchContractEvent({
-        address: contractAddress,
-        abi: erc20Abi,
-        eventName: "Transfer",
-        onLogs: logs => {
-            if (logs.length > 0 && "args" in logs[0] && logs[0].args) {
-                const args = logs[0].args as any
-                const newEvent: ContractEvent = {
-                    type: "Transfer",
-                    from: args.from as string,
-                    to: args.to as string,
-                    value: args.value as bigint,
-                    timestamp: new Date().toLocaleTimeString(),
-                }
-                setRecentEvents(prev => [newEvent, ...prev.slice(0, 9)])
-            }
-        },
-    })
+    // useWatchContractEvent({
+    //     address: contractAddress,
+    //     abi: erc20Abi,
+    //     eventName: "Transfer",
+    //     onLogs: logs => {
+    //         if (logs.length > 0 && "args" in logs[0] && logs[0].args) {
+    //             const args = logs[0].args as any
+    //             const newEvent: ContractEvent = {
+    //                 type: "Transfer",
+    //                 from: args.from as string,
+    //                 to: args.to as string,
+    //                 value: args.value as bigint,
+    //                 timestamp: new Date().toLocaleTimeString(),
+    //             }
+    //             setRecentEvents(prev => [newEvent, ...prev.slice(0, 9)])
+    //         }
+    //     },
+    // })
 
-    useWatchContractEvent({
-        address: contractAddress,
-        abi: erc20Abi,
-        eventName: "Approval",
-        onLogs: logs => {
-            if (logs.length > 0 && "args" in logs[0] && logs[0].args) {
-                const args = logs[0].args as any
-                const newEvent: ContractEvent = {
-                    type: "Approval",
-                    owner: args.owner as string,
-                    spender: args.spender as string,
-                    value: args.value as bigint,
-                    timestamp: new Date().toLocaleTimeString(),
-                }
-                setRecentEvents(prev => [newEvent, ...prev.slice(0, 9)])
-            }
-        },
-    })
+    // useWatchContractEvent({
+    //     address: contractAddress,
+    //     abi: erc20Abi,
+    //     eventName: "Approval",
+    //     onLogs: logs => {
+    //         if (logs.length > 0 && "args" in logs[0] && logs[0].args) {
+    //             const args = logs[0].args as any
+    //             const newEvent: ContractEvent = {
+    //                 type: "Approval",
+    //                 owner: args.owner as string,
+    //                 spender: args.spender as string,
+    //                 value: args.value as bigint,
+    //                 timestamp: new Date().toLocaleTimeString(),
+    //             }
+    //             setRecentEvents(prev => [newEvent, ...prev.slice(0, 9)])
+    //         }
+    //     },
+    // })
 
     // Transaction status notifications
     useEffect(() => {
@@ -196,6 +216,7 @@ const Erc20ContractPage = () => {
             toast.error("Invalid recipient address")
             return
         }
+        const amount = transferAmountRef.current?.value
         if (!amount || parseFloat(amount) <= 0) {
             toast.error("Invalid amount")
             return
@@ -220,6 +241,7 @@ const Erc20ContractPage = () => {
             toast.error("Invalid spender address")
             return
         }
+        const amount = approveAmountRef.current?.value
         if (!amount || parseFloat(amount) <= 0) {
             toast.error("Invalid amount")
             return
@@ -244,6 +266,7 @@ const Erc20ContractPage = () => {
             toast.error("Invalid addresses")
             return
         }
+        const amount = transferFromAmountRef.current?.value
         if (!amount || parseFloat(amount) <= 0) {
             toast.error("Invalid amount")
             return
@@ -268,6 +291,7 @@ const Erc20ContractPage = () => {
             toast.error("Invalid recipient address")
             return
         }
+        const amount = mintAmountRef.current?.value
         if (!amount || parseFloat(amount) <= 0) {
             toast.error("Invalid amount")
             return
@@ -288,6 +312,7 @@ const Erc20ContractPage = () => {
     }
 
     const handleBurn = () => {
+        const amount = burnAmountRef.current?.value
         if (!amount || parseFloat(amount) <= 0) {
             toast.error("Invalid amount")
             return
@@ -330,14 +355,15 @@ const Erc20ContractPage = () => {
             toast.error("Invalid minter address")
             return
         }
-        if (!minterAmount || parseFloat(minterAmount) <= 0) {
+        const amount = minterAmountRef.current?.value
+        if (!amount || parseFloat(amount) <= 0) {
             toast.error("Invalid amount")
             return
         }
 
         try {
             const decimals = typeof tokenDecimals === "number" ? tokenDecimals : 18
-            const parsedAmount = parseUnits(minterAmount, decimals)
+            const parsedAmount = parseUnits(amount, decimals)
             writeContract({
                 address: contractAddress,
                 abi: erc20Abi,
@@ -421,14 +447,15 @@ const Erc20ContractPage = () => {
             toast.error("Invalid addresses")
             return
         }
-        if (!rescueAmount || parseFloat(rescueAmount) <= 0) {
+        const amount = rescueAmountRef.current?.value
+        if (!amount || parseFloat(amount) <= 0) {
             toast.error("Invalid amount")
             return
         }
 
         try {
             const decimals = typeof tokenDecimals === "number" ? tokenDecimals : 18
-            const parsedAmount = parseUnits(rescueAmount, decimals)
+            const parsedAmount = parseUnits(amount, decimals)
             writeContract({
                 address: contractAddress,
                 abi: erc20Abi,
@@ -469,7 +496,9 @@ const Erc20ContractPage = () => {
                         <h3 className="font-semibold text-gray-700">Total Supply</h3>
                         <p className="text-lg">
                             {totalSupply && typeof tokenDecimals === "number"
-                                ? formatUnits(totalSupply as bigint, tokenDecimals)
+                                ? formatNumberCompact(
+                                      formatUnits(totalSupply as bigint, tokenDecimals)
+                                  )
                                 : "Loading..."}
                         </p>
                     </div>
@@ -477,23 +506,19 @@ const Erc20ContractPage = () => {
                         <h3 className="font-semibold text-gray-700">Your Balance</h3>
                         <p className="text-lg">
                             {userBalance
-                                ? formatUnits(userBalance.value, userBalance.decimals)
+                                ? formatNumberCompact(
+                                      formatUnits(userBalance.value, userBalance.decimals)
+                                  )
                                 : "0"}
                         </p>
                     </div>
+
                     <div className="p-4 border rounded-lg">
-                        <h3 className="font-semibold text-gray-700">Contract Status</h3>
+                        <h3 className="font-semibold text-gray-700">Your Allowance </h3>
                         <p className="text-lg">
-                            <span
-                                className={cn(
-                                    "px-2 py-1 rounded text-sm",
-                                    isPaused
-                                        ? "bg-red-100 text-red-800"
-                                        : "bg-green-100 text-green-800"
-                                )}
-                            >
-                                {isPaused ? "Paused" : "Active"}
-                            </span>
+                            {allowance
+                                ? formatUnits(allowance as bigint, tokenDecimals as number)
+                                : "0"}
                         </p>
                     </div>
                 </div>
@@ -533,6 +558,26 @@ const Erc20ContractPage = () => {
                         <h3 className="font-semibold text-gray-700">Version</h3>
                         <p className="text-lg">{String(version || "Loading...")}</p>
                     </div>
+
+                    <div className="p-4 border rounded-lg">
+                        <h3 className="font-semibold text-gray-700">Contract Status</h3>
+                        <p className="text-lg">
+                            <span
+                                className={cn(
+                                    "px-2 py-1 rounded text-sm",
+                                    isPaused
+                                        ? "bg-red-100 text-red-800"
+                                        : "bg-green-100 text-green-800"
+                                )}
+                            >
+                                {isPaused ? "Paused" : "Active"}
+                            </span>
+                        </p>
+                    </div>
+                    <div className="p-4 border rounded-lg">
+                        <h3 className="font-semibold text-gray-700">Currency</h3>
+                        <p className="text-lg">{String(tokenName || "Loading...")}</p>
+                    </div>
                 </div>
 
                 {/* {currency && (
@@ -541,10 +586,6 @@ const Erc20ContractPage = () => {
                         <p className="text-lg">{String(currency)}</p>
                     </div>
                 )} */}
-                <div className="p-4 border rounded-lg">
-                    <h3 className="font-semibold text-gray-700">Currency</h3>
-                    <p className="text-lg">{String(currency || "Loading...")}</p>
-                </div>
             </Accordion.Content>
         </Accordion.Item>
     )
@@ -575,8 +616,7 @@ const Erc20ContractPage = () => {
                             <input
                                 type="number"
                                 placeholder="Amount"
-                                value={amount}
-                                onChange={e => setAmount(e.target.value)}
+                                ref={transferAmountRef}
                                 className="p-2 border rounded"
                             />
                         </div>
@@ -603,8 +643,7 @@ const Erc20ContractPage = () => {
                             <input
                                 type="number"
                                 placeholder="Amount"
-                                value={amount}
-                                onChange={e => setAmount(e.target.value)}
+                                ref={approveAmountRef}
                                 className="p-2 border rounded"
                             />
                         </div>
@@ -638,8 +677,7 @@ const Erc20ContractPage = () => {
                             <input
                                 type="number"
                                 placeholder="Amount"
-                                value={amount}
-                                onChange={e => setAmount(e.target.value)}
+                                ref={transferFromAmountRef}
                                 className="p-2 border rounded"
                             />
                         </div>
@@ -670,8 +708,7 @@ const Erc20ContractPage = () => {
                             <input
                                 type="number"
                                 placeholder="Amount"
-                                value={amount}
-                                onChange={e => setAmount(e.target.value)}
+                                ref={mintAmountRef}
                                 className="p-2 border rounded"
                             />
                         </div>
@@ -690,8 +727,7 @@ const Erc20ContractPage = () => {
                         <input
                             type="number"
                             placeholder="Amount"
-                            value={amount}
-                            onChange={e => setAmount(e.target.value)}
+                            ref={burnAmountRef}
                             className="p-2 border rounded w-full md:w-1/2"
                         />
                         <button
@@ -758,8 +794,7 @@ const Erc20ContractPage = () => {
                             <input
                                 type="number"
                                 placeholder="Minter Allowance"
-                                value={minterAmount}
-                                onChange={e => setMinterAmount(e.target.value)}
+                                ref={minterAmountRef}
                                 className="p-2 border rounded"
                             />
                         </div>
@@ -960,8 +995,7 @@ const Erc20ContractPage = () => {
                             <input
                                 type="number"
                                 placeholder="Amount"
-                                value={rescueAmount}
-                                onChange={e => setRescueAmount(e.target.value)}
+                                ref={rescueAmountRef}
                                 className="p-2 border rounded"
                             />
                         </div>
@@ -1049,11 +1083,11 @@ const Erc20ContractPage = () => {
             <div className="container mx-auto px-4 py-8">
                 {/* Header */}
                 <div className="mb-8">
-                    <div className="flex items-center justify-between mb-4">
+                    {/* <div className="flex items-center justify-between mb-4">
                         <h1 className="text-3xl font-bold text-gray-900">
                             ERC-20 Contract Interaction
                         </h1>
-                    </div>
+                    </div> */}
 
                     {!isConnected && (
                         <div className="p-4 bg-yellow-50 border border-yellow-200 rounded-lg">
@@ -1064,12 +1098,18 @@ const Erc20ContractPage = () => {
                     )}
 
                     {/* Contract Address */}
-                    <div className="mt-4 p-4 bg-white border rounded-lg">
-                        <h2 className="font-semibold text-gray-700 mb-2">Contract Address</h2>
-                        <div className="flex items-center gap-2">
-                            <code className="text-sm bg-gray-100 px-2 py-1 rounded">
+                    <div className="mt-4 p-4 bg-white border rounded-lg flex items-center justify-between">
+                        {/* <h2 className="font-semibold text-gray-700 mb-2">Contract Address</h2> */}
+                        <div className="flex items-end gap-2">
+                            {/* <code className="text-sm bg-gray-100 px-2 py-1 rounded">
                                 {contractAddress}
-                            </code>
+                            </code> */}
+                            <InputForm
+                                value={contractAddress}
+                                onChange={e => setContractAddress(e as Address)}
+                                label="Contract Address"
+                                placeholder="Enter Contract Address"
+                            />
                             <button
                                 onClick={() => {
                                     navigator.clipboard.writeText(contractAddress)
@@ -1079,6 +1119,24 @@ const Erc20ContractPage = () => {
                             >
                                 <Copy className="h-4 w-4" />
                             </button>
+                        </div>
+
+                        <div className="flex items-center gap-2">
+                            {" "}
+                            <Button
+                                onClick={() => setShowRequestTokenModal(true)}
+                                // variant="outline"
+                                size="sm"
+                            >
+                                Request Some Token
+                            </Button>{" "}
+                            <Button
+                                onClick={() => setShowApproveTokenModal(true)}
+                                variant="outline"
+                                size="sm"
+                            >
+                                Get Approve Some token
+                            </Button>{" "}
                         </div>
                     </div>
                 </div>
@@ -1108,10 +1166,81 @@ const Erc20ContractPage = () => {
                 )}
 
                 {/* Main Content */}
-                <Accordion.Root type="multiple" className="space-y-4">
+                <Accordion.Root
+                    defaultValue={["read-functions"]}
+                    type="multiple"
+                    className="space-y-4"
+                >
                     <ReadFunctionSection />
                     <WriteFunctionSection />
                     <EventsSection />
+
+                    <RequestTokenModal
+                        isOpen={showRequestTokenModal}
+                        onClose={() => setShowRequestTokenModal(false)}
+                    />
+
+                    <ApproveTokenModal
+                        isOpen={showApproveTokenModal}
+                        onClose={() => setShowApproveTokenModal(false)}
+                    />
+
+                    <Accordion.Accordion type="single" collapsible className="w-full">
+                        <AccordionItem
+                            value="sepolia-erc20"
+                            className="border rounded-lg overflow-hidden bg-card"
+                        >
+                            <AccordionTrigger className="text-lg font-semibold px-4 hover:no-underline hover:bg-accent/50">
+                                <div className="flex items-center gap-2">
+                                    <div className="w-2 h-2 rounded-full bg-primary"></div>
+                                    Sepolia ERC20 Contract
+                                </div>
+                            </AccordionTrigger>
+                            <AccordionContent>
+                                <div className="space-y-4 p-4 bg-accent/5">
+                                    <div className="bg-accent/10 p-4 rounded-lg border border-accent/20">
+                                        <p className="font-mono text-sm break-all text-primary">
+                                            Contract Address:
+                                            0x71Cc1Abcb77Cd3d486AB8774e67D2B11b052210B
+                                        </p>
+                                    </div>
+                                    <div className="space-y-2">
+                                        <h4 className="font-medium text-primary">Description</h4>
+                                        <p className="text-muted-foreground">
+                                            This is a standard ERC20 token contract deployed on the
+                                            Sepolia testnet. It implements all the standard ERC20
+                                            functions including transfer, approve, and
+                                            transferFrom. The contract is used for testing and
+                                            development purposes.
+                                        </p>
+                                    </div>
+                                    <div className="space-y-2">
+                                        <h4 className="font-medium text-primary">Features</h4>
+                                        <ul className="list-disc list-inside text-muted-foreground space-y-1">
+                                            <li>Standard ERC20 implementation</li>
+                                            <li>Transfer and approval functionality</li>
+                                            <li>Balance tracking</li>
+                                            <li>Event emission for transfers and approvals</li>
+                                        </ul>
+                                    </div>
+                                    <div className="pt-2">
+                                        <Button
+                                            onClick={() => setShowApproveTokenModal(true)}
+                                            variant="outline"
+                                            size="sm"
+                                        >
+                                            <Link
+                                                href={`https://sepolia.etherscan.io/address/${contractAddress}`}
+                                                target="_blank"
+                                            >
+                                                View on Explorer
+                                            </Link>
+                                        </Button>
+                                    </div>
+                                </div>
+                            </AccordionContent>
+                        </AccordionItem>
+                    </Accordion.Accordion>
                 </Accordion.Root>
             </div>
         </div>

@@ -29,6 +29,7 @@ export type DeployInput = {
     tokenSymbol: string
     tokenDecimals: number
     initialSupply: string
+    privateKey?: string
 }
 
 // Server Action
@@ -38,6 +39,7 @@ export async function deployERC20Token({
     tokenSymbol,
     tokenDecimals,
     initialSupply,
+    privateKey,
 }: DeployInput) {
     const input = {
         userAddress,
@@ -45,15 +47,12 @@ export async function deployERC20Token({
         tokenSymbol,
         tokenDecimals,
         initialSupply,
+        privateKey,
     }
     try {
-        // const abiItem = {
-        //     inputs: [{ name: "owner", type: "address" }],
-        //     name: "balanceOf",
-        //     outputs: [{ name: "", type: "uint256" }],
-        //     stateMutability: "view",
-        //     type: "function",
-        // }
+        if (!privateKey) {
+            return { error: "Private key is Missing" }
+        }
         const { userAddress, tokenName, tokenSymbol, tokenDecimals, initialSupply, totalSupply } =
             validateDeployInput(input)
 
@@ -70,14 +69,7 @@ export async function deployERC20Token({
             return { error: "Compilation error" }
         }
 
-        // const encodedConstructor = encodeFunctionData({
-        //     abi,
-        //     args: [tokenName, tokenSymbol, tokenDecimals, totalSupply, userAddress],
-        // })
-
-        // const deploymentData = (bytecode + encodedConstructor.slice(2)) as `0x${string}`
-
-        const { publicClient, walletClient, deployerAccount } = await getSepoliaClients()
+        const { publicClient, walletClient, deployerAccount } = await getSepoliaClients(privateKey)
 
         console.log(
             "deployERC20Token",
@@ -88,18 +80,8 @@ export async function deployERC20Token({
         )
 
         if (!publicClient || !walletClient || !deployerAccount) {
-            return {
-                walletClient,
-                deployerAccount,
-                userAddress,
-                tokenName,
-                tokenSymbol,
-                tokenDecimals,
-                initialSupply,
-            }
             return { error: "Deployment service not configured. Check environment variables." }
         }
-       
 
         const data = encodeDeployData({
             abi,

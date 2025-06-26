@@ -159,8 +159,8 @@ const DeploymentsPage = () => {
                                                 Contract Address
                                             </p>
                                             <p className="font-mono text-sm break-all">
-                                                {deployment.contractAddress.slice(0, 10)}...
-                                                {deployment.contractAddress.slice(-8)}
+                                                {deployment.contractAddress?.slice(0, 10)}...
+                                                {deployment.contractAddress?.slice(-8)}
                                             </p>
                                         </div>
                                         <div>

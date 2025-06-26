@@ -22,6 +22,8 @@ import {
 } from "@/components/ui/dialog"
 import { DeploymentForm } from "@/components/DeploymentForm"
 import { FaGithub } from "react-icons/fa"
+import { Button } from "@/components/ui/button"
+import ContractCompileInfoModal from "@/components/ui/ContractCompileInfoModal"
 
 const DeployerPage = () => {
     const { address, isConnected } = useAccount()
@@ -32,7 +34,7 @@ const DeployerPage = () => {
     const [isDeployed, setIsDeployed] = useState(false)
     const [showModal, setShowModal] = useState(false)
     const [showGasInfoModal, setShowGasInfoModal] = useState(false)
-
+    const [showContractInfoModal, setShowContractInfoModal] = useState(false)
     const isOnSepolia = chainId === sepolia.id
 
     // TanStack Query mutation
@@ -129,6 +131,16 @@ const DeployerPage = () => {
                                     >
                                         {isOnSepolia ? "Sepolia Testnet" : `Chain ID: ${chainId}`}
                                     </p>
+                                </div>
+                                <div>
+                                    <Button
+                                        onClick={() => {
+                                            setShowContractInfoModal(true)
+                                        }}
+                                    >
+                                        <ExternalLink className="h-4 w-4" />
+                                        <span>Show Contract Info</span>
+                                    </Button>
                                 </div>
                                 {!isOnSepolia && (
                                     <button
@@ -311,11 +323,19 @@ const DeployerPage = () => {
                 />
             )}
 
-            <ContractModal
-                isOpen={showModal}
-                onClose={() => setShowModal(false)}
-                localStorageKey="latest_deployment"
-            />
+            {showContractInfoModal && (
+                <ContractCompileInfoModal
+                    isOpen={showContractInfoModal}
+                    onClose={() => setShowContractInfoModal(false)}
+                />
+            )}
+            {showModal && (
+                <ContractModal
+                    isOpen={showModal}
+                    onClose={() => setShowModal(false)}
+                    localStorageKey="latest_deployment"
+                />
+            )}
         </div>
     )
 }

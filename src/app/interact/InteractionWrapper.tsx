@@ -14,14 +14,16 @@ import {
     AccordionTrigger,
 } from "@/components/ui/Accordion"
 import { TransactionSuccessModal } from "@/components/ui/TransactionSuccessModal"
+import { Button } from "@/components/ui/button"
+import RequestTokenModal from "@/components/ui/RequestTokenModal"
 
-const DAI_ADDRESS = "0x1c7D4B196Cb0C7B01d743Fbc6116a902379C7238"
+const PTK_ADDRESS = process.env.NEXT_PUBLIC_PTK as `0x${string}`
 
 export default function InteractionWrapper() {
     const [amount, setAmount] = useState("")
     const [recipient, setRecipient] = useState("")
     const [spender, setSpender] = useState("") // State for the approve function's spender
-
+    const [showRequestTokenModal, setShowRequestTokenModal] = useState(false)
     // State for transferFrom
     const [transferFromSender, setTransferFromSender] = useState("")
     const [transferFromRecipient, setTransferFromRecipient] = useState("")
@@ -45,7 +47,7 @@ export default function InteractionWrapper() {
     // --- Read Contract Calls for Token Metadata ---
     const { data: name } = useReadContract({
         abi: erc20Abi,
-        address: DAI_ADDRESS as `0x${string}`,
+        address: PTK_ADDRESS as `0x${string}`,
         functionName: "name",
     })
     console.log("name", name)
@@ -53,38 +55,37 @@ export default function InteractionWrapper() {
 
     const { data: symbol } = useReadContract({
         abi: erc20Abi,
-        address: DAI_ADDRESS as `0x${string}`,
+        address: PTK_ADDRESS as `0x${string}`,
         functionName: "symbol",
     })
 
     const { data: decimals } = useReadContract({
         abi: erc20Abi,
-        address: DAI_ADDRESS as `0x${string}`,
+        address: PTK_ADDRESS as `0x${string}`,
         functionName: "decimals",
     })
 
     const { data: totalSupply } = useReadContract({
         abi: erc20Abi,
-        address: DAI_ADDRESS as `0x${string}`,
+        address: PTK_ADDRESS as `0x${string}`,
         functionName: "totalSupply",
     })
     console.log("account", account)
     // --- Read Contract Calls for Account Information ---
     const { data: balance } = useReadContract({
         abi: erc20Abi,
-        address: DAI_ADDRESS as `0x${string}`,
+        address: PTK_ADDRESS as `0x${string}`,
         functionName: "balanceOf",
         args: [account.address],
         query: {
             enabled: !!account.address, // Only fetch if account.address is available
         },
     })
-
     const { data: allowance } = useReadContract({
         abi: erc20Abi,
-        address: DAI_ADDRESS as `0x${string}`,
+        address: PTK_ADDRESS as `0x${string}`,
         functionName: "allowance",
-        args: [account.address, DAI_ADDRESS], // Assuming DAI_ADDRESS is the spender for the main allowance display
+        args: [account.address, PTK_ADDRESS], // Assuming PTK_ADDRESS is the spender for the main allowance display
         query: {
             enabled: !!account.address,
         },
@@ -93,7 +94,7 @@ export default function InteractionWrapper() {
     // --- Read Contract Calls for Query Functions Section ---
     const { data: queriedAllowance } = useReadContract({
         abi: erc20Abi,
-        address: DAI_ADDRESS as `0x${string}`,
+        address: PTK_ADDRESS as `0x${string}`,
         functionName: "allowance",
         args: [queryAllowanceOwner as `0x${string}`, queryAllowanceSpender as `0x${string}`],
         query: {
@@ -103,7 +104,7 @@ export default function InteractionWrapper() {
 
     const { data: queriedBalance } = useReadContract({
         abi: erc20Abi,
-        address: DAI_ADDRESS as `0x${string}`,
+        address: PTK_ADDRESS as `0x${string}`,
         functionName: "balanceOf",
         args: [queryBalanceAddress as `0x${string}`],
         query: {
@@ -132,7 +133,7 @@ export default function InteractionWrapper() {
             const loadingToast = toast.loading("Processing transfer...")
             const res = await writeContractAsync({
                 abi: erc20Abi,
-                address: DAI_ADDRESS as `0x${string}`,
+                address: PTK_ADDRESS as `0x${string}`,
                 functionName: "transfer",
                 args: [recipient as `0x${string}`, BigInt(amount)],
             })
@@ -169,7 +170,7 @@ export default function InteractionWrapper() {
             const loadingToast = toast.loading("Processing approval...")
             const res = await writeContractAsync({
                 abi: erc20Abi,
-                address: DAI_ADDRESS as `0x${string}`,
+                address: PTK_ADDRESS as `0x${string}`,
                 functionName: "approve",
                 args: [spender as `0x${string}`, BigInt(amount)],
             })
@@ -194,7 +195,7 @@ export default function InteractionWrapper() {
             const loadingToast = toast.loading("Processing transfer from...")
             const res = await writeContractAsync({
                 abi: erc20Abi,
-                address: DAI_ADDRESS as `0x${string}`,
+                address: PTK_ADDRESS as `0x${string}`,
                 functionName: "transferFrom",
                 args: [
                     transferFromSender as `0x${string}`,
@@ -215,6 +216,11 @@ export default function InteractionWrapper() {
         }
     }
 
+    const handleRequestTokenModal = () => {
+        console.log("requesting token")
+        setShowRequestTokenModal(true)
+    }
+
     return (
         <ConnectedGuard>
             <div className="max-w-4xl mx-auto p-6 bg-white rounded-xl shadow-lg space-y-8">
@@ -231,53 +237,6 @@ export default function InteractionWrapper() {
                 )}
                 <h2 className="text-3xl font-bold text-center">ERC-20 Token Dashboard</h2>
 
-                <Accordion type="single" collapsible className="w-full">
-                    <AccordionItem
-                        value="sepolia-erc20"
-                        className="border rounded-lg overflow-hidden bg-card"
-                    >
-                        <AccordionTrigger className="text-lg font-semibold px-4 hover:no-underline hover:bg-accent/50">
-                            <div className="flex items-center gap-2">
-                                <div className="w-2 h-2 rounded-full bg-primary"></div>
-                                Sepolia ERC20 Contract
-                            </div>
-                        </AccordionTrigger>
-                        <AccordionContent>
-                            <div className="space-y-4 p-4 bg-accent/5">
-                                <div className="bg-accent/10 p-4 rounded-lg border border-accent/20">
-                                    <p className="font-mono text-sm break-all text-primary">
-                                        Contract Address:
-                                        0x1c7D4B196Cb0C7B01d743Fbc6116a902379C7238
-                                    </p>
-                                </div>
-                                <div className="space-y-2">
-                                    <h4 className="font-medium text-primary">Description</h4>
-                                    <p className="text-muted-foreground">
-                                        This is a standard ERC20 token contract deployed on the
-                                        Sepolia testnet. It implements all the standard ERC20
-                                        functions including transfer, approve, and transferFrom.
-                                        The contract is used for testing and development purposes.
-                                    </p>
-                                </div>
-                                <div className="space-y-2">
-                                    <h4 className="font-medium text-primary">Features</h4>
-                                    <ul className="list-disc list-inside text-muted-foreground space-y-1">
-                                        <li>Standard ERC20 implementation</li>
-                                        <li>Transfer and approval functionality</li>
-                                        <li>Balance tracking</li>
-                                        <li>Event emission for transfers and approvals</li>
-                                    </ul>
-                                </div>
-                                <div className="pt-2">
-                                    <button className="inline-flex items-center justify-center rounded-md text-sm font-medium ring-offset-background transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 bg-primary text-primary-foreground hover:bg-primary/90 h-10 px-4 py-2">
-                                        View on Explorer
-                                    </button>
-                                </div>
-                            </div>
-                        </AccordionContent>
-                    </AccordionItem>
-                </Accordion>
-
                 {/* Token Information Section */}
                 <div
                     style={{ overflowWrap: "break-word" }}
@@ -287,7 +246,7 @@ export default function InteractionWrapper() {
                         <h3 className="text-xl font-semibold mb-4">Token Metadata</h3>
                         <div className="space-y-2">
                             <p>
-                                <span className="font-medium">Contract:</span> {DAI_ADDRESS}
+                                <span className="font-medium">Contract:</span> {PTK_ADDRESS}
                             </p>
                             <p>
                                 <span className="font-medium">Name:</span>{" "}
@@ -317,9 +276,28 @@ export default function InteractionWrapper() {
                             </p>
                             <p>
                                 <span className="font-medium">Your Balance In The Contract:</span>{" "}
-                                {balance !== undefined
-                                    ? formatTokenAmount(balance as bigint)
-                                    : "0"}
+                                {balance !== undefined ? (
+                                    BigInt(balance as bigint) == BigInt(0) ? (
+                                        <div className="flex items-center gap-2">
+                                            {" "}
+                                            0{" "}
+                                            <span className="text-xs text-muted-foreground">
+                                                wei
+                                            </span>{" "}
+                                            <Button
+                                                onClick={handleRequestTokenModal}
+                                                variant="outline"
+                                                size="sm"
+                                            >
+                                                Request Some Token
+                                            </Button>{" "}
+                                        </div>
+                                    ) : (
+                                        formatTokenAmount(balance as bigint)
+                                    )
+                                ) : (
+                                    0
+                                )}
                             </p>
                             <p>
                                 <span className="font-medium">Your Wallet Balance:</span>{" "}
@@ -335,7 +313,7 @@ export default function InteractionWrapper() {
                                 )}
                             </p>
                             <p>
-                                <span className="font-medium">Allowance (to DAI_ADDRESS):</span>{" "}
+                                <span className="font-medium">Allowance (to PTK_ADDRESS):</span>{" "}
                                 {allowance !== undefined ? allowance?.toString() : "0"} wei
                             </p>
                         </div>
@@ -509,6 +487,10 @@ export default function InteractionWrapper() {
                         </div>
                     </div>
                 </div>
+                <RequestTokenModal
+                    isOpen={showRequestTokenModal}
+                    onClose={() => setShowRequestTokenModal(false)}
+                />
             </div>
         </ConnectedGuard>
     )
