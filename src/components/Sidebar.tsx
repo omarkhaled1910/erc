@@ -15,10 +15,13 @@ const Sidebar = () => {
 
     const menuItems = [
         { name: "Dashboard", path: "/" },
-        { name: "Interact", path: "/interact" },
         { name: "ERC-20 Contract", path: "/erc20-contract" },
+        { name: "ERC-721 Contract", path: "/erc721-contract" },
+        { name: "Dex", path: "/dex" },
+        { name: "Dex Bot", path: "/dex-bot" },
         { name: "Deploy Contract", path: "/deployer" },
         { name: "Deployments", path: "/deployments" },
+
         { name: "Settings", path: "/settings" },
     ]
 

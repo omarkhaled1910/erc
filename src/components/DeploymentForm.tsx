@@ -94,7 +94,7 @@ export function DeploymentForm({
                         htmlFor="tokenSymbol"
                         className="block text-sm font-medium text-gray-700"
                     >
-                        Token Symbol *S
+                        Token Symbol *
                     </label>
                     <input
                         id="tokenSymbol"

@@ -1,7 +1,7 @@
 import { ChangeEvent } from "react"
 
 export interface InputFormBaseProps {
-    label: string
+    label: string | JSX.Element
     placeholder: string
     value?: string
     type?: string
@@ -30,6 +30,7 @@ export function InputForm<T extends boolean | undefined = false>({
     onChange,
     returnEvent,
     id,
+    ...props
 }: InputFormProps<T>) {
     const handleChange = (e: ChangeEvent<HTMLInputElement> | ChangeEvent<HTMLTextAreaElement>) => {
         // console.log(e.target.value, returnEvent ,onChange)
@@ -39,6 +40,7 @@ export function InputForm<T extends boolean | undefined = false>({
             ;(onChange as InputChangeHandler<false>)?.(e.target.value)
         }
     }
+    console.log("value", value)
 
     return (
         <div className="flex flex-col gap-1.5">
@@ -53,6 +55,7 @@ export function InputForm<T extends boolean | undefined = false>({
                     onChange={handleChange}
                     disabled={disabled}
                     name={id}
+                    {...props}
                 />
             ) : (
                 <input
@@ -65,6 +68,7 @@ export function InputForm<T extends boolean | undefined = false>({
                     onChange={handleChange}
                     disabled={disabled}
                     name={id}
+                    {...props}
                 />
             )}
         </div>

@@ -1,6 +1,6 @@
 import { useMutation } from "@tanstack/react-query"
 import { DeploymentStorage, DeploymentInfo } from "@/lib/utils/deploymentStorage"
-import { deployERC20Token } from "@/app/actions/deploy"
+import { deployERC20Token, deployERC721Token } from "@/app/actions/deploy"
 
 interface DeployContractParams {
     userAddress: string
@@ -64,3 +64,24 @@ export const useDeployContract = () => {
         },
     })
 }
+
+export const useDeployERC721Contract = () => {
+    return useMutation({
+        mutationFn: deployERC721Token,
+        onSuccess: (data, variables) => {
+            console.log("useDeployERC721Contract", data, variables)
+
+            const deploymentInfo = {
+                transactionHash: data?.transactionHash || "",
+                contractAddress: data?.contractAddress as string,
+                blockNumber: Number(data?.blockNumber) as number,
+                gasUsed: data?.gasUsed?.toString() || "",
+                tokenName: variables.name,
+            }
+            DeploymentStorage.storeDeployment(deploymentInfo)
+        },
+        onError: error => {
+            console.error("Deployment error:", error)
+        },
+    })
+}   

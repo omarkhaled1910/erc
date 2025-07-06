@@ -27,6 +27,7 @@ import { formatNumberCompact } from "@/utils"
 import RequestTokenModal from "@/components/ui/RequestTokenModal"
 import { Button } from "@/components/ui/button"
 import ApproveTokenModal from "@/components/ui/ApproveTokenModal"
+import { bigint } from "zod"
 // Contract address - replace with your actual deployed ERC-20 contract address
 const ERC20_CONTRACT_ADDRESS = process.env.NEXT_PUBLIC_PTK as Address
 
@@ -85,13 +86,14 @@ const Erc20ContractPage = () => {
         abi: erc20Abi,
         functionName: "decimals",
     })
-
+    console.log("tokenDecimals", tokenDecimals)
     const { data: totalSupply } = useReadContract({
         address: contractAddress,
         abi: erc20Abi,
         functionName: "totalSupply",
     })
 
+    console.log("totalSupply", totalSupply)
     const { data: userBalance } = useBalance({
         address: address,
         token: contractAddress,
@@ -495,9 +497,9 @@ const Erc20ContractPage = () => {
                     <div className="p-4 border rounded-lg">
                         <h3 className="font-semibold text-gray-700">Total Supply</h3>
                         <p className="text-lg">
-                            {totalSupply && typeof tokenDecimals === "number"
+                            {totalSupply
                                 ? formatNumberCompact(
-                                      formatUnits(totalSupply as bigint, tokenDecimals)
+                                      formatUnits(totalSupply as bigint, Number(tokenDecimals))
                                   )
                                 : "Loading..."}
                         </p>

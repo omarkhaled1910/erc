@@ -19,7 +19,7 @@ export class DeploymentStorage {
     /**
      * Store deployment information in localStorage
      */
-    static storeDeployment(deploymentInfo: DeploymentInfo): void {
+    static storeDeployment(deploymentInfo: any): void {
         const storageKey = `${this.DEPLOYMENT_PREFIX}${deploymentInfo.contractAddress}`
 
         // Store with unique key

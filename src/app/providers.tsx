@@ -8,7 +8,17 @@ import config from "@/rainbowKitConfig"
 import "@rainbow-me/rainbowkit/styles.css"
 
 export function Providers(props: { children: ReactNode }) {
-    const [queryClient] = useState(() => new QueryClient())
+    const [queryClient] = useState(
+        () =>
+            new QueryClient({
+                defaultOptions: {
+                    queries: {
+                        refetchOnWindowFocus: false,
+                        staleTime: 1000 * 60 * 5,
+                    },
+                },
+            })
+    )
 
     return (
         <WagmiProvider config={config}>

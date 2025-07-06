@@ -8,6 +8,11 @@ const nextConfig = {
     basePath: "",
     assetPrefix: "./",
     trailingSlash: false,
+    //    experimental:{
+    //     turbo :{
+    //         "@"
+    //     }
+    //    }
 }
 
 module.exports = nextConfig

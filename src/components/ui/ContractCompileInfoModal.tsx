@@ -14,9 +14,11 @@ import { ERC20_TEMPLATE } from "@/constants"
 const ContractCompileInfoModal = ({
     isOpen,
     onClose,
+    contractString,
 }: {
     isOpen: boolean
     onClose: () => void
+    contractString?: string
 }) => {
     return (
         <div>
@@ -28,7 +30,7 @@ const ContractCompileInfoModal = ({
                             Contract Compile Info
                         </DialogTitle>
                         <DialogDescription className=" max-h-[500px] overflow-y-auto max-w-[480px]">
-                            <MarkdownCodeDisplay code={ERC20_TEMPLATE} />
+                            <MarkdownCodeDisplay code={contractString || ERC20_TEMPLATE} />
                         </DialogDescription>
                     </DialogHeader>
                 </DialogContent>
