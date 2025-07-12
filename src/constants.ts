@@ -20,10 +20,46 @@ export const TOKEN_PAIRS = [
         symbol: "ETH/USDC",
         address: (chainId?: number) => {
             if (chainId === sepolia.id) {
-                return "0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48"
+                // return "0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48"
+                return "0xF62c03E08ada871A0bEb309762E260a7a6a880E6"
             }
             return "0x0227628f3F023bb0B980b67D528571c95c6DaC1c"
         },
+        firstTokenAddress: "0xfff9976782d46cc05630d1f6ebab18b2324d6b14",
+        secondTokenAddress: "0x1c7D4B196Cb0C7B01d743Fbc6116a902379C7238",
+    },
+    {
+        symbol: "ETH/DAI",
+        address: (chainId?: number) => {
+            if (chainId === 1) {
+                return "0x6b175474e89094c44da98b954eedeac495271d0f"
+            }
+            return "0x6b175474e89094c44da98b954eedeac495271d0f"
+        },
+    },
+    {
+        symbol: "WBTC/ETH",
+        address: (chainId?: number) => {
+            if (chainId === 1) {
+                return "0x2260fac5e5542a773aa44fbcfedf7c193bc2c599"
+            }
+            return "0x2260fac5e5542a773aa44fbcfedf7c193bc2c599"
+        },
+    },
+]
+
+export const TOKEN_PAIRS_SUSHI = [
+    {
+        symbol: "ETH/USDC",
+        address: (chainId?: number) => {
+            if (chainId === sepolia.id) {
+                // return "0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48"
+                return "0xeaBcE3E74EF41FB40024a21Cc2ee2F5dDc615791"
+            }
+            return "0x0227628f3F023bb0B980b67D528571c95c6DaC1c"
+        },
+        firstTokenAddress: "0xfff9976782d46cc05630d1f6ebab18b2324d6b14",
+        secondTokenAddress: "0x1c7D4B196Cb0C7B01d743Fbc6116a902379C7238",
     },
     {
         symbol: "ETH/DAI",

@@ -1,56 +1,69 @@
 // providers/uniswapV3Provider.ts
 
-import { TOKEN_PAIRS } from "@/constants"
+import { sepolia } from "viem/chains"
 import { ethers } from "ethers"
-import JSBI from "jsbi"
+import { BaseDexProvider, DexQuote } from "./baseDexProvider"
 
-export interface DexQuote {
-    dexName: string
-    price: number
-    liquidity?: number
-    spread?: number // in %
-    arbOpportunity?: number // in %
+const UNISWAP_V2_CONFIG = {
+    name: "Uniswap V2",
+    factoryAddress: "0x0227628f3F023bb0B980b67D528571c95c6DaC1c", // Sepolia factory address
+    poolAbi: ["function getPair(address tokenA, address tokenB) external view returns (address)"],
+    pairAbi: [
+        "function getReserves() view returns (uint112 reserve0, uint112 reserve1, uint32 blockTimestampLast)",
+        "function token0() view returns (address)",
+        "function token1() view returns (address)",
+    ],
 }
 
-const POOL_ABI = [
-    "function slot0() view returns (uint160 sqrtPriceX96, int24 tick, uint16 observationIndex, uint16 observationCardinality, uint16 observationCardinalityNext, uint8 feeProtocol, bool unlocked)",
-    "function liquidity() view returns (uint128)",
-]
-export interface DexPriceProvider {
-    getQuotes(pairSymbol: string, provider: ethers.Provider): Promise<DexQuote[]>
-}
-export class UniswapV3Provider implements DexPriceProvider {
-    async getQuotes(pairSymbol: string, provider: ethers.Provider): Promise<DexQuote[]> {
-        const currrentPair = TOKEN_PAIRS.find(pair => pair.symbol === pairSymbol)
-        if (!currrentPair) {
-            throw new Error(`Pair ${pairSymbol} not found`)
+export class UniswapV3Provider extends BaseDexProvider {
+    factoryAddress: string
+    constructor() {
+        super(UNISWAP_V2_CONFIG)
+        this.factoryAddress = UNISWAP_V2_CONFIG.factoryAddress
+    }
+
+    async getQuotes(
+        pairSymbol: string,
+        provider: ethers.Provider,
+        chainId?: number
+    ): Promise<DexQuote[]> {
+        const currentPair = this.getCurrentPair(pairSymbol)
+        console.log("currentPair", currentPair)
+        this.factoryAddress = currentPair.address(chainId || sepolia.id)
+        const { firstTokenAddress, secondTokenAddress } = currentPair
+
+        if (!firstTokenAddress || !secondTokenAddress) {
+            throw new Error(`Token addresses not found for pair ${pairSymbol}`)
         }
-        const { address, symbol } = currrentPair
-        const [firstTokenSymbol, secTokenSymbol] = symbol.split("/")
 
-        const poolContract = new ethers.Contract(address(), POOL_ABI, provider)
+        const factory = new ethers.Contract(this.factoryAddress, this.config.poolAbi, provider)
 
-        // const [sqrtPriceX96, tick, liquidity] = await poolContract.slot0()
+        console.log("factory", factory)
 
-        console.log("poolContract", poolContract)
+        const pairAddress = await this.getPairAddress(
+            factory,
+            firstTokenAddress,
+            secondTokenAddress
+        )
+        console.log("pairAddress", pairAddress)
 
-        const [slot0, liquidity] = await Promise.all([
-            poolContract.slot0(),
-            poolContract.liquidity(),
-        ])
+        const pair = new ethers.Contract(pairAddress, this.config.pairAbi, provider)
+        const { reserve0, reserve1 } = await this.getReserves(pair)
 
-        const sqrtPriceX96JSBI = JSBI.BigInt(slot0[0])
-        const liquidityJSBI = JSBI.BigInt(liquidity)
-        console.log("slot0", { slot0, sqrtPriceX96JSBI })
-        console.log("liquidity", { liquidity, liquidityJSBI })
+        const price = this.calculatePrice(reserve0, reserve1)
+        const liquidity = this.calculateLiquidity(reserve0, reserve1)
+
+        console.log("Price:", price)
+        console.log("Liquidity:", liquidity)
 
         return [
             {
-                dexName: "Uniswap V3",
-                price: 18541.32,
-                liquidity: 3500000,
+                dexName: this.config.name,
+                price: price,
+                liquidity: liquidity,
                 spread: 0,
                 arbOpportunity: 0,
+                factoryAddress: this.factoryAddress,
             },
         ]
     }

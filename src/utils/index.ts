@@ -1,3 +1,4 @@
+import JSBI from "jsbi"
 import { parseUnits, formatUnits, parseEther, formatEther } from "viem"
 
 export { calculateTotal } from "./calculateTotal/calculateTotal"
@@ -185,4 +186,66 @@ export function formatNumberCompact(input: number | string, decimals: number = 1
     const sign = num < 0 ? "-" : ""
 
     return sign + formattedNum + threshold.suffix
+}
+
+export function fromDecimals(valueJSBI: bigint, decimalsJSBI: JSBI): number {
+    const precision = JSBI.exponentiate(JSBI.BigInt(10), decimalsJSBI)
+    // Use decimal.js or convert to string and insert decimal point manually for precision
+    // For quick demo, convert to Number (beware precision loss for huge numbers)
+    return Number(valueJSBI.toString()) / Number(precision.toString())
+}
+
+// Utility functions for formatting
+export const formatPrice = (price: number) => {
+    if (!price || isNaN(price) || price === 0) return "$0.00"
+
+    const numPrice = price
+
+    if (numPrice < 0.000001) {
+        // For very small numbers, show in scientific notation
+        return `$${numPrice.toExponential(6)}`
+    } else if (numPrice < 0.01) {
+        // For small numbers, show more decimal places
+        return `$${numPrice.toFixed(8)}`
+    } else if (numPrice < 1) {
+        // For numbers less than 1, show 4 decimal places
+        return `$${numPrice.toFixed(4)}`
+    } else {
+        // For regular numbers, show 2 decimal places
+        return `$${numPrice.toLocaleString("en-US", {
+            minimumFractionDigits: 2,
+            maximumFractionDigits: 2,
+        })}`
+    }
+}
+
+export const formatLiquidity = (liquidity: number) => {
+    if (!liquidity || isNaN(liquidity) || liquidity === 0) return "$0"
+
+    const numLiquidity = liquidity
+
+    if (numLiquidity >= 1e12) {
+        return `$${(numLiquidity / 1e12).toFixed(2)}T`
+    } else if (numLiquidity >= 1e9) {
+        return `$${(numLiquidity / 1e9).toFixed(2)}B`
+    } else if (numLiquidity >= 1e6) {
+        return `$${(numLiquidity / 1e6).toFixed(2)}M`
+    } else if (numLiquidity >= 1e3) {
+        return `$${(numLiquidity / 1e3).toFixed(2)}K`
+    } else {
+        return `$${numLiquidity.toLocaleString("en-US", {
+            minimumFractionDigits: 2,
+            maximumFractionDigits: 2,
+        })}`
+    }
+}
+
+export const formatSpread = (spread: number) => {
+    if (!spread || isNaN(spread)) return "0.000%"
+    return `${spread.toFixed(3)}%`
+}
+
+export const formatAddress = (address: string) => {
+    if (!address) return "—"
+    return `${address.slice(0, 6)}...${address.slice(-4)}`
 }

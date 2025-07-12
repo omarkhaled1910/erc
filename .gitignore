@@ -45,3 +45,6 @@ node_modules/
 .fleek/*
 .env 
 .env.enc
+branch_structure.json
+temp_auto_push.bat
+temp_interactive_push.bat

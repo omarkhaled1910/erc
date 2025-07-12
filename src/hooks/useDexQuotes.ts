@@ -1,12 +1,14 @@
 import { useQuery } from "@tanstack/react-query"
-import { DexPriceProvider, DexQuote, UniswapV3Provider } from "@/providers/uniswapV3Provider"
+import { UniswapV3Provider } from "@/providers/uniswapV3Provider"
 import { usePublicClient } from "wagmi"
 import { ethers } from "ethers"
 import { createPublicClient, http, PublicClient } from "viem"
 import { sepolia } from "viem/chains"
+import { BaseDexProvider, DexQuote } from "@/providers/baseDexProvider"
+import { SushiSwapProvider } from "@/providers/sushiSwapProvider"
 
 // Your providers array (make sure it's imported or declared in this file)
-const providers: DexPriceProvider[] = [new UniswapV3Provider()]
+const providers: BaseDexProvider[] = [new UniswapV3Provider(), new SushiSwapProvider()]
 
 export function useDexQuotes(pairSymbol: string, publicClient: PublicClient) {
     // Convert Viem PublicClient to Ethers.js provider

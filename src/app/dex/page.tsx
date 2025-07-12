@@ -5,7 +5,11 @@ import { sepolia } from "viem/chains"
 import DexWrapper from "./wrapper"
 
 const DashboardPage = () => {
-    return <DexWrapper />
+    return (
+        <div className="container mx-auto px-4 py-8">
+            <DexWrapper />
+        </div>
+    )
 }
 
 export default DashboardPage

@@ -1,9 +1,8 @@
 "use client"
 
-import React from "react"
+import React, { useMemo } from "react"
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/Tabs"
-import DexTable from "./DexTable"
 import ProfitChart from "./ProfitChart"
 import { TOKEN_PAIRS } from "@/constants"
 import { Label } from "@/components/ui/label"
@@ -14,19 +13,25 @@ import {
     SelectTrigger,
     SelectValue,
 } from "@/components/ui/select"
-import { useDexQuotes } from "@/hooks/useDexQuotes"
 import { createPublicClient, http, PublicClient } from "viem"
 import { sepolia } from "viem/chains"
+import { LiquidityPoolTab } from "./LiquidityPoolTab"
+import Dexs from "@/components/Dexs"
+// import UniSwapPairsList from "@/components/UniSwapPairsViewer"
 
-const DexWrapper = ({ publicClient2 }: { publicClient2?: PublicClient }) => {
-    const publicClient = createPublicClient({
-        chain: sepolia,
-        transport: http(process.env.NEXT_PUBLIC_SEPOLIA_RPC_URL || "", {
-            timeout: 60_000, // 30 seconds
-        }),
-    })
+const DexWrapper = () => {
+    const publicClient = useMemo(() => {
+        const transport = http(process.env.NEXT_PUBLIC_SEPOLIA_RPC_URL || "", {
+            timeout: 60_000, // 60 seconds
+        })
+        return createPublicClient({
+            chain: sepolia,
+            transport,
+        })
+    }, [])
+
     return (
-        <div className="container mx-auto px-4 py-8">
+        <div className="container mx-auto px-4 py-8 space-y-4">
             <div className="flex justify-between items-center mb-8">
                 <h1 className="text-3xl font-bold text-gray-900 dark:text-white">
                     Cross-DEX Arbitrage Dashboard
@@ -49,8 +54,9 @@ const DexWrapper = ({ publicClient2 }: { publicClient2?: PublicClient }) => {
                     </div>
                 </div>
             </div>
+            <Dexs />
 
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8 space-y-4">
                 <Card className="bg-gradient-to-br from-indigo-500 to-purple-600 text-white">
                     <CardHeader>
                         <CardTitle className="text-sm font-medium">Total Profit</CardTitle>
@@ -93,7 +99,33 @@ const DexWrapper = ({ publicClient2 }: { publicClient2?: PublicClient }) => {
                     </CardContent>
                 </Card>
             </div>
-
+            <Card>
+                <CardContent>
+                    <Tabs defaultValue="eth-usdc">
+                        <TabsList className="grid w-full grid-cols-3">
+                            {TOKEN_PAIRS.map(pair => (
+                                <TabsTrigger
+                                    key={pair.symbol}
+                                    value={pair.symbol.toLowerCase().replace("/", "-")}
+                                >
+                                    {pair.symbol}
+                                </TabsTrigger>
+                            ))}
+                        </TabsList>
+                        {TOKEN_PAIRS.map(pair => (
+                            <TabsContent
+                                key={pair.symbol}
+                                value={pair.symbol.toLowerCase().replace("/", "-")}
+                            >
+                                <LiquidityPoolTab
+                                    pairSymbol={pair.symbol}
+                                    publicClient={publicClient}
+                                />
+                            </TabsContent>
+                        ))}
+                    </Tabs>
+                </CardContent>
+            </Card>
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-8">
                 <Card className="lg:col-span-2">
                     <CardHeader>
@@ -133,55 +165,9 @@ const DexWrapper = ({ publicClient2 }: { publicClient2?: PublicClient }) => {
                     </CardContent>
                 </Card>
             </div>
-
-            <Card>
-                <CardHeader>
-                    <CardTitle>DEX Price Comparison</CardTitle>
-                </CardHeader>
-                <CardContent>
-                    <Tabs defaultValue="eth-usdc">
-                        <TabsList className="grid w-full grid-cols-3">
-                            {TOKEN_PAIRS.map(pair => (
-                                <TabsTrigger
-                                    key={pair.symbol}
-                                    value={pair.symbol.toLowerCase().replace("/", "-")}
-                                >
-                                    {pair.symbol}
-                                </TabsTrigger>
-                            ))}
-                        </TabsList>
-                        {TOKEN_PAIRS.map(pair => (
-                            <TabsContent
-                                key={pair.symbol}
-                                value={pair.symbol.toLowerCase().replace("/", "-")}
-                            >
-                                {/* <DexTable pair={pair.symbol} /> */}
-                                <LiquidityPoolTab
-                                    pairSymbol={pair.symbol}
-                                    publicClient={publicClient}
-                                />
-                            </TabsContent>
-                        ))}
-                    </Tabs>
-                </CardContent>
-            </Card>
+            {/* <UniSwapPairsList /> */}
         </div>
     )
 }
 
 export default DexWrapper
-
-function LiquidityPoolTab({
-    pairSymbol,
-    publicClient,
-}: {
-    pairSymbol: string
-    publicClient: PublicClient
-}) {
-    const { data: quotes, isLoading, error } = useDexQuotes(pairSymbol, publicClient)
-
-    if (isLoading) return <p>Loading prices...</p>
-    if (error || !quotes) return <p>Error loading prices: {error?.message}</p>
-
-    return <DexTable quotes={quotes} />
-}
